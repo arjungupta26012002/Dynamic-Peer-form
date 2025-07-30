@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px; 
+        }
+        h1, h2 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="number"], 
+        select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none;
+        }
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            background-color: #ffe0e0;
+            border: 1px solid red;
+        }
+        .success {
+            color: green;
+            background-color: #e0ffe0;
+            border: 1px solid green;
+            white-space: pre-wrap; 
+        }
+        .info { 
+            color: #0056b3;
+            background-color: #e0f2f7;
+            border: 1px solid #a7d9f2;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none; 
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .peer-card {
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .peer-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .score-category {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .score-category label {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .score-options {
+            flex: 2;
+            display: flex;
+            gap: 10px;
+        }
+        .score-options input[type="radio"] {
+            margin-right: 3px;
+            width: auto; 
+        }
+        .score-options label {
+            display: inline-block;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .copyright {
+            text-align: center;
+            margin-top: auto; 
+            padding-top: 20px; 
+            font-size: 0.85em; 
+            color: #888; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            gap: 8px;
+            flex-wrap: wrap; 
+        }
+
+        .copyright a {
+            color: #888;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .copyright a:hover {
+            color: var(--primary-color); 
+            text-decoration: underline;
+        }
+
+        .linkedin-link {
+            display: inline-flex;
+            vertical-align: middle;
+            line-height: 0;
+            height: 18px; 
+            width: 18px;
+        }
+
+        .linkedin-icon {
+            height: 100%;
+            width: 100%;
+            object-fit: contain;
+            border: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            margin-bottom: 15px; 
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px; 
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color); 
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            margin-bottom: 0; 
+        }
+
+        .feedback-link {
+            font-size: 0.95em; 
+            color: var(--feedback-link-color); 
+            text-decoration: none; 
+            font-weight: 500; 
+            transition: color 0.2s ease-in-out, text-decoration 0.2s ease-in-out;
+            white-space: nowrap; 
+        }
+
+        .feedback-link:hover {
+            color: var(--feedback-link-hover-color); 
+            text-decoration: underline; 
+        }
+
+        .separator {
+            color: #aaa; 
+            margin: 0 4px; 
+            white-space: nowrap; 
+        }
+    </style>
+</head>
+<script>
+
+    const otpLength = <?= otpLength ?>; 
+</script>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/uQLfqvsn_o.png" alt="Excelerate Logo" class="logo">
+        </div>
+        <h1>Peer Evaluation Form</h1>
+        <div class="loading-spinner" id="loading-spinner"></div>
+
+        <section id="details-section">
+            <h2>Your Details</h2>
+            <div class="form-group">
+                <label for="name">Your Full Name:</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Your Registered Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <button id="next-to-otp-button">Next</button>
+            <div id="error-message-step1" class="message error hidden"></div>
+        </section>
+
+        <section id="otpPanel" class="hidden"> <h2>Verify Your Identity</h2>
+            <p>An OTP has been sent to your registered email address. Please enter it below to continue.</p>
+            <div class="form-group">
+                <label for="userOtp">Enter OTP:</label> <input type="number" id="userOtp" placeholder="6-digit OTP" required maxlength="6"> </div>
+            <button id="verifyOtpBtn">Verify OTP</button> <button id="resendOtpBtn">Resend OTP</button> <button id="backToDetailsBtn">Back</button> <div id="otpMessage" class="message error hidden"></div> </section>
+
+        <section id="selection-and-evaluation-section" class="hidden">
+            <h2>Internship & Cohort Selection</h2>
+            <p>Welcome, <strong id="display-intern-name"></strong>!</p>
+            <div class="form-group">
+                <label for="internship">Select Internship:</label>
+                <select id="internship" disabled>
+                    <option value="">Loading internships...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="cohort">Select Cohort:</label>
+                <select id="cohort" disabled>
+                    <option value="">Select an internship first</option>
+                </select>
+            </div>
+            <button id="load-peers-button">Load My Team & Peers</button>
+            <button id="back-button-step1">Back</button>
+            <div id="error-message-step2" class="message error hidden"></div>
+
+            <div id="peer-evaluation-sub-section" class="hidden">
+                <h3>Team Number: <span id="display-team-number"></span></h3>
+                <div id="peers-container">
+                    <p>No peers found for evaluation.</p>
+                </div>
+                <button id="submit-button" class="hidden">Submit Evaluations</button>
+                <div id="evaluation-message" class="message success hidden"></div>
+                <div id="submission-error-message" class="message error hidden"></div>
+            </div>
+        </section>
+    </div>
+    <div class="copyright">
+    <span>© 2025 Made with ❤️ by <a href="mailto:arjungupta26012002@gmail.com">Arjun Gupta</a></span>
+    <a href="https://www.linkedin.com/in/arjungupta26012002/" target="_blank" rel="noopener noreferrer" class="linkedin-link">
+      <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/5AjJm1lz_o.gif" alt="Connect on LinkedIn" class="linkedin-icon">
+    </a>
+    <span class="separator">|</span>
+    <a href="https://forms.gle/Ti3dpMaXrUCAnTuL7" target="_blank" rel="noopener noreferrer" class="feedback-link">
+      Review/Report/Request
+    </a>
+  </div>
+
+    <?!= HtmlService.createTemplateFromFile('JavaScript').evaluate().getContent() ?>
+
+</body>
+</html>
