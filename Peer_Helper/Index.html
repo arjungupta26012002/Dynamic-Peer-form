@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0; 
+        padding: 20px; 
+        background-color: #f8f9fa; 
+        color: #343a40; 
+        min-height: 100vh; 
+        display: flex;
+        flex-direction: column; 
+      }
+      h1 {
+        color: #212529; 
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.5em; 
+      }
+      .logo-container {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-top: 10px; 
+      }
+      .logo {
+        max-width: 180px; 
+        height: auto;
+        display: block; 
+        margin: 0 auto; 
+      }
+      .container {
+        flex-grow: 1; 
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto 50px auto; 
+      }
+      .internship-box {
+        background-color: #fff;
+        border: 1px solid #e9ecef; 
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+      .internship-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      }
+      .internship-box h3 {
+        margin-top: 0;
+        color: #0056b3; 
+        border-bottom: 1px solid #dee2e6; 
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        font-size: 1.4em;
+      }
+      .internship-box label {
+        display: block;
+        margin-bottom: 5px;
+        color: #495057; 
+        font-weight: bold;
+      }
+      .internship-box input[type="date"] {
+        width: calc(100% - 22px); 
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ced4da; 
+        border-radius: 5px;
+        font-size: 1rem;
+      }
+      .internship-box button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+      }
+      .internship-box button:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+      }
+      .internship-box button:active {
+        transform: translateY(0);
+      }
+
+      #toast {
+        visibility: hidden; 
+        min-width: 250px; 
+        margin-left: -125px; 
+        background-color: #333; 
+        color: #fff; 
+        text-align: center; 
+        border-radius: 5px; 
+        padding: 16px; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 50%; 
+        top: 30px; 
+        font-size: 17px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        opacity: 0; 
+        transition: opacity 0.5s, top 0.5s; 
+      }
+
+      #toast.show {
+        visibility: visible; 
+        opacity: 1; 
+        top: 30px; 
+
+      }
+
+      @-webkit-keyframes fadein {
+        from {top: 0; opacity: 0;}
+        to {top: 30px; opacity: 1;}
+      }
+
+      @keyframes fadein {
+        from {top: 0; opacity: 0;}
+        to {top: 30px; opacity: 1;}
+      }
+
+      @-webkit-keyframes fadeout {
+        from {top: 30px; opacity: 1;}
+        to {top: 0; opacity: 0;}
+      }
+
+      @keyframes fadeout {
+        from {top: 30px; opacity: 1;}
+        to {top: 0; opacity: 0;}
+      }
+
+      #toast.success {
+          background-color: #28a745; 
+      }
+      #toast.error {
+          background-color: #dc3545; 
+      }
+
+      .copyright {
+        margin-top: auto; 
+        padding: 20px;
+        text-align: center;
+        font-size: 0.9em;
+        color: #6c757d; 
+        border-top: 1px solid #e9ecef; 
+        background-color: #f1f3f5; 
+      }
+      .copyright span {
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .copyright a {
+        color: #007bff; 
+        text-decoration: none;
+        transition: color 0.2s ease-in-out;
+      }
+      .copyright a:hover {
+        color: #0056b3; 
+        text-decoration: underline;
+      }
+      .linkedin-link {
+        margin-left: 5px; 
+        vertical-align: middle;
+      }
+      .linkedin-icon {
+        width: 24px; 
+        height: 24px;
+        vertical-align: middle;
+      }
+      .separator {
+        margin: 0 10px; 
+        color: #adb5bd; 
+      }
+      .feedback-link {
+        font-weight: bold; 
+      }
+
+      .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8); 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1001; 
+        visibility: hidden; 
+        opacity: 0;
+        transition: visibility 0s, opacity 0.3s linear;
+      }
+
+      .loader-overlay.show {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .loader {
+        border: 8px solid #f3f3f3; 
+        border-top: 8px solid #007bff; 
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logo-container">
+      <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/uQLfqvsn_o.png" alt="Excelerate Logo" class="logo">
+    </div>
+
+    <h1>Manage Peer Evaluation Dates</h1>
+    <div id="internshipsContainer" class="container">
+      Loading internships...
+    </div>
+
+    <div id="toast"></div>
+
+    <div class="copyright">
+      <span>© 2025 Made with ❤️ by <a href="mailto:arjungupta26012002@gmail.com">Arjun Gupta</a></span>
+      <a href="https://www.linkedin.com/in/arjungupta26012002/" target="_blank" rel="noopener noreferrer" class="linkedin-link">
+        <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/5AjJm1lz_o.gif" alt="Connect on LinkedIn" class="linkedin-icon">
+      </a>
+      <span class="separator">|</span>
+      <a href="https://forms.gle/EG2AKbv26KMwpr6i9" target="_blank" rel="noopener noreferrer" class="feedback-link">
+        Review/Report/Request
+      </a>
+    </div>
+
+    <div id="loaderOverlay" class="loader-overlay">
+      <div class="loader"></div>
+    </div>
+
+    <script>
+
+      const toastElement = document.getElementById('toast');
+      const loaderOverlay = document.getElementById('loaderOverlay'); 
+
+      function showToast(message, type) {
+        toastElement.className = ''; 
+        toastElement.textContent = message;
+        toastElement.classList.add('show'); 
+        toastElement.classList.add(type);    
+
+        setTimeout(() => {
+          toastElement.classList.remove('show');
+
+          setTimeout(() => {
+              toastElement.textContent = '';
+              toastElement.className = '';
+          }, 500); 
+        }, 3000); 
+      }
+
+      function showLoader() {
+        loaderOverlay.classList.add('show');
+      }
+
+      function hideLoader() {
+        loaderOverlay.classList.remove('show');
+      }
+
+      function populateInternships(internships) {
+        const container = document.getElementById('internshipsContainer');
+        container.innerHTML = ''; 
+
+        if (internships.length === 0) {
+          container.innerHTML = '<p style="text-align: center; color: #666;">No internships found in the "Value" sheet. Please add some manually.</p>';
+          return;
+        }
+
+        internships.forEach(internship => {
+          const box = document.createElement('div');
+          box.className = 'internship-box';
+          box.innerHTML = `
+            <h3>${internship.name}</h3>
+            <label for="startDate_${internship.id}">Start Date:</label>
+            <input type="date" id="startDate_${internship.id}" value="${internship.startDate}">
+            <label for="endDate_${internship.id}">End Date:</label>
+            <input type="date" id="endDate_${internship.id}" value="${internship.endDate}">
+            <button onclick="submitDates('${internship.id}')">Submit Dates</button>
+          `;
+          container.appendChild(box);
+        });
+      }
+
+      function submitDates(internshipId) {
+        showLoader(); 
+
+        const startDateInput = document.getElementById(`startDate_${internshipId}`);
+        const endDateInput = document.getElementById(`endDate_${internshipId}`);
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        if (!startDate || !endDate) {
+          hideLoader(); 
+          showToast('Please select both a start and end date.', 'error');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(response => {
+            hideLoader(); 
+            if (response.success) {
+              showToast(response.message, 'success'); 
+
+              google.script.run.withSuccessHandler(populateInternships).getInternships();
+            } else {
+              showToast(response.message, 'error'); 
+            }
+          })
+          .withFailureHandler(error => {
+            hideLoader(); 
+            showToast(`An unexpected error occurred: ${error.message}`, 'error'); 
+          })
+          .submitInternshipDates(internshipId, startDate, endDate);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+
+        showLoader();
+        google.script.run.withSuccessHandler(internships => {
+          populateInternships(internships);
+          hideLoader(); 
+        }).getInternships();
+      });
+    </script>
+  </body>
+</html>
