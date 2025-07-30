@@ -1,0 +1,665 @@
+<script>
+
+    function getById(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element with ID '${id}' not found in the DOM.`);
+        }
+        return element;
+    }
+
+    const detailsSection = getById('details-section');
+    const otpSection = getById('otpPanel'); 
+    const selectionAndEvaluationSection = getById('selection-and-evaluation-section');
+    const peerEvaluationSubSection = getById('peer-evaluation-sub-section');
+
+    const nameInput = getById('name');
+    const emailInput = getById('email');
+    const otpInput = getById('userOtp'); 
+    const internshipSelect = getById('internship');
+    const cohortSelect = getById('cohort');
+
+    const nextToOtpButton = getById('next-to-otp-button');
+    const verifyOtpButton = getById('verifyOtpBtn'); 
+    const resendOtpButton = getById('resendOtpBtn'); 
+    const backToDetailsButton = getById('backToDetailsBtn'); 
+    const loadPeersButton = getById('load-peers-button');
+    const submitButton = getById('submit-button');
+    const backButtonStep1 = getById('back-button-step1');
+
+    const errorMessageDivStep1 = getById('error-message-step1');
+    const errorMessageDivOtp = getById('otpMessage'); 
+    const errorMessageDivStep2 = getById('error-message-step2');
+    const evaluationMessageDiv = getById('evaluation-message');
+    const submissionErrorMessageDiv = getById('submission-error-message');
+
+    const displayInternName = getById('display-intern-name');
+    const displayTeamNumber = getById('display-team-number');
+    const peersContainer = getById('peers-container');
+    const loadingSpinner = getById('loading-spinner');
+
+    let allInternships = [];
+    let currentInternData = null; 
+    let currentInternshipName = ''; 
+    let isEditMode = false; 
+
+    const scoreCategories = [
+        { id: 'quality', label: 'Quality of Work' },
+        { id: 'initiative', label: 'Initiative Taken' },
+        { id: 'timeliness', label: 'Timeliness' },
+        { id: 'communication', label: 'Communication' },
+        { id: 'collaboration', label: 'Collaboration' },
+        { id: 'conflictResolution', label: 'Conflict Resolution' },
+        { id: 'willingnessToWork', label: 'Willingness to Work' },
+        { id: 'overall', label: 'Overall Performance' }
+    ];
+
+    let evaluatedPeersData = [];
+
+    document.addEventListener('DOMContentLoaded', initializePage);
+
+    function initializePage() {
+
+        if (detailsSection) detailsSection.classList.remove('hidden');
+        if (otpSection) otpSection.classList.add('hidden');
+        if (selectionAndEvaluationSection) selectionAndEvaluationSection.classList.add('hidden');
+        if (peerEvaluationSubSection) peerEvaluationSubSection.classList.add('hidden');
+        if (submitButton) submitButton.classList.add('hidden');
+        clearAllMessages();
+        loadInternships(); 
+        if (nameInput) nameInput.focus();
+    }
+
+    function showLoading() {
+        if (loadingSpinner) loadingSpinner.style.display = 'block';
+    }
+
+    function hideLoading() {
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
+    }
+
+    function showMessage(element, message, type = 'info') { 
+        if (element) {
+            element.textContent = message;
+            element.className = `message ${type}`; 
+            element.classList.remove('hidden');
+            setTimeout(() => {
+                if (element) element.classList.add('hidden');
+            }, 7000); 
+        }
+    }
+
+    function hideMessage(element) {
+        if (element) {
+            element.classList.add('hidden');
+            element.textContent = '';
+        }
+    }
+
+    function clearAllMessages() {
+        hideMessage(errorMessageDivStep1);
+        hideMessage(errorMessageDivOtp);
+        hideMessage(errorMessageDivStep2);
+        hideMessage(evaluationMessageDiv);
+        hideMessage(submissionErrorMessageDiv);
+    }
+
+    if (nextToOtpButton) { 
+        nextToOtpButton.addEventListener('click', () => {
+            clearAllMessages();
+            const name = nameInput ? nameInput.value.trim() : '';
+            const email = emailInput ? emailInput.value.trim() : '';
+
+            if (!name || !email) {
+                showMessage(errorMessageDivStep1, 'Please enter your full name and email address.', 'error');
+                return;
+            }
+
+            currentInternData = { name: name, email: email };
+
+            showLoading();
+            if (nextToOtpButton) nextToOtpButton.disabled = true;
+            if (nameInput) nameInput.disabled = true;
+            if (emailInput) emailInput.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(response => {
+                    hideLoading();
+                    if (nextToOtpButton) nextToOtpButton.disabled = false;
+                    if (response.success) {
+                        showMessage(errorMessageDivOtp, response.message, 'success');
+                        if (detailsSection) detailsSection.classList.add('hidden');
+                        if (otpSection) otpSection.classList.remove('hidden');
+                        if (otpInput) otpInput.focus();
+                    } else {
+                        showMessage(errorMessageDivStep1, response.message, 'error');
+                        if (nameInput) nameInput.disabled = false;
+                        if (emailInput) emailInput.disabled = false;
+                    }
+                })
+                .withFailureHandler(e => {
+                    onError(e, errorMessageDivStep1);
+                    hideLoading();
+                    if (nextToOtpButton) nextToOtpButton.disabled = false;
+                    if (nameInput) nameInput.disabled = false;
+                    if (emailInput) emailInput.disabled = false;
+                })
+                .generateAndSendOtp(email, name);
+        });
+    }
+
+    if (verifyOtpButton) { 
+        verifyOtpButton.addEventListener('click', () => {
+            clearAllMessages();
+            const userOtp = otpInput ? otpInput.value.trim() : '';
+            console.log("DEBUG: Client-side userOtp:", userOtp);
+            console.log("DEBUG: Client-side userOtp.length:", userOtp.length);
+            console.log("DEBUG: Client-side otpLength (global var from index.html):", typeof otpLength !== 'undefined' ? otpLength : 'undefined/not found');
+
+            if (!userOtp) { 
+                showMessage(errorMessageDivOtp, `Please enter the OTP.`, 'error');
+                return;
+            }
+
+            if (!currentInternData || !currentInternData.email) {
+                showMessage(errorMessageDivOtp, 'Error: Intern data missing. Please go back to start.', 'error');
+                return;
+            }
+
+            showLoading();
+            if (verifyOtpButton) verifyOtpButton.disabled = true;
+            if (resendOtpButton) resendOtpButton.disabled = true;
+            if (otpInput) otpInput.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(response => {
+                    hideLoading();
+                    if (verifyOtpButton) verifyOtpButton.disabled = false;
+                    if (resendOtpButton) resendOtpButton.disabled = false;
+                    if (otpInput) otpInput.disabled = false;
+                    if (response.success) {
+                        showMessage(errorMessageDivOtp, response.message, 'success');
+                        if (otpSection) otpSection.classList.add('hidden');
+                        if (selectionAndEvaluationSection) selectionAndEvaluationSection.classList.remove('hidden');
+                        if (displayInternName) displayInternName.textContent = currentInternData.name;
+                    } else {
+                        showMessage(errorMessageDivOtp, response.message, 'error');
+                    }
+                })
+                .withFailureHandler(e => {
+                    onError(e, errorMessageDivOtp);
+                    hideLoading();
+                    if (verifyOtpButton) verifyOtpButton.disabled = false;
+                    if (resendOtpButton) resendOtpButton.disabled = false;
+                    if (otpInput) otpInput.disabled = false;
+                })
+                .verifyOtp(currentInternData.email, userOtp);
+        });
+    }
+
+    if (resendOtpButton) { 
+        resendOtpButton.addEventListener('click', () => {
+            clearAllMessages();
+            if (!currentInternData || !currentInternData.email) {
+                showMessage(errorMessageDivOtp, 'Error: Cannot resend. Please go back to start and re-enter details.', 'error');
+                return;
+            }
+            showLoading();
+            if (resendOtpButton) resendOtpButton.disabled = true;
+            if (verifyOtpButton) verifyOtpButton.disabled = true;
+            if (otpInput) {
+                otpInput.disabled = true;
+                otpInput.value = ''; 
+
+                otpInput.setAttribute('maxlength', typeof otpLength !== 'undefined' ? otpLength : '6');
+                otpInput.placeholder = `Enter OTP`; 
+            }
+
+            google.script.run
+                .withSuccessHandler(response => {
+                    hideLoading();
+                    if (resendOtpButton) resendOtpButton.disabled = false;
+                    if (verifyOtpButton) verifyOtpButton.disabled = false;
+                    if (otpInput) {
+                        otpInput.disabled = false;
+                        otpInput.focus();
+                    }
+                    if (response.success) {
+                        showMessage(errorMessageDivOtp, response.message, 'success');
+                    } else {
+                        showMessage(errorMessageDivOtp, response.message, 'error');
+                    }
+                })
+                .withFailureHandler(e => {
+                    onError(e, errorMessageDivOtp);
+                    hideLoading();
+                    if (resendOtpButton) resendOtpButton.disabled = false;
+                    if (verifyOtpButton) verifyOtpButton.disabled = false;
+                    if (otpInput) otpInput.disabled = false;
+                })
+                .generateAndSendOtp(currentInternData.email, currentInternData.name);
+        });
+    }
+
+    if (backToDetailsButton) { 
+        backToDetailsButton.addEventListener('click', () => {
+            clearAllMessages();
+            if (otpSection) otpSection.classList.add('hidden');
+            if (detailsSection) detailsSection.classList.remove('hidden');
+            if (otpInput) otpInput.value = '';
+            if (nameInput) nameInput.disabled = false; 
+            if (emailInput) emailInput.disabled = false; 
+            if (emailInput) emailInput.focus();
+        });
+    }
+
+    if (backButtonStep1) { 
+        backButtonStep1.addEventListener('click', () => {
+            clearAllMessages();
+            if (selectionAndEvaluationSection) selectionAndEvaluationSection.classList.add('hidden');
+            if (otpSection) otpSection.classList.remove('hidden');
+
+            if (internshipSelect) internshipSelect.value = ''; 
+            if (cohortSelect) {
+                cohortSelect.innerHTML = '<option value="">Select an internship first</option>';
+                cohortSelect.disabled = true;
+            }
+            if (peerEvaluationSubSection) peerEvaluationSubSection.classList.add('hidden');
+            if (submitButton) submitButton.classList.add('hidden');
+            if (internshipSelect) internshipSelect.disabled = false; 
+        });
+    }
+
+    function getCurrentAndPreviousMonthNumbers() {
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; 
+        let previousMonth = currentMonth - 1;
+
+        if (previousMonth === 0) { 
+            previousMonth = 12;
+        }
+
+        const currentMonthStr = String(currentMonth).padStart(2, '0');
+        const previousMonthStr = String(previousMonth).padStart(2, '0');
+
+        return { current: currentMonthStr, previous: previousMonthStr };
+    }
+
+    function loadInternships() {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(internships => {
+                allInternships = internships;
+                if (internshipSelect) internshipSelect.innerHTML = '<option value="">Select an internship</option>';
+                if (allInternships && allInternships.length > 0) {
+                    allInternships.forEach(internship => {
+                        const option = document.createElement('option');
+                        option.value = internship.id; 
+                        option.textContent = internship.name; 
+                        if (internshipSelect) internshipSelect.appendChild(option);
+                    });
+                } else {
+                    if (internshipSelect) internshipSelect.innerHTML = '<option value="">No internships found</option>';
+                }
+                if (internshipSelect) internshipSelect.disabled = false;
+                hideLoading();
+            })
+            .withFailureHandler(e => {
+                onError(e, errorMessageDivStep2);
+                hideLoading();
+            })
+            .getInternshipList();
+    }
+
+    if (internshipSelect) { 
+        internshipSelect.addEventListener('change', () => {
+            const selectedId = internshipSelect.value;
+            currentInternshipName = internshipSelect.options[internshipSelect.selectedIndex].text; 
+            if (cohortSelect) {
+                cohortSelect.innerHTML = '<option value="">Loading cohorts...</option>';
+                cohortSelect.disabled = true;
+            }
+            hideMessage(errorMessageDivStep2);
+            if (peerEvaluationSubSection) peerEvaluationSubSection.classList.add('hidden');
+            if (submitButton) submitButton.classList.add('hidden');
+
+            if (selectedId) {
+                showLoading();
+                google.script.run
+                    .withSuccessHandler(cohorts => {
+                        if (cohortSelect) cohortSelect.innerHTML = '<option value="">Select a cohort</option>';
+
+                        const { current, previous } = getCurrentAndPreviousMonthNumbers();
+                        const allowedMonths = [current, previous]; 
+                        console.log(`Allowed months for cohorts: Current (${current}), Previous (${previous})`);
+
+                        if (cohorts && cohorts.length > 0) {
+                            cohorts.forEach(cohort => {
+
+                                const cohortNameUpper = cohort.toUpperCase();
+
+                                if (cohortNameUpper.includes('TASK') || cohortNameUpper.includes('TRACKER')) {
+                                    console.log(`Skipping cohort "${cohort}" due to keyword filter.`);
+                                    return; 
+                                }
+
+                                const monthMatch = cohort.match(/\b\d{2}(\d{2})\b/);
+                                let includeCohort = false;
+
+                                if (monthMatch && monthMatch[1]) {
+                                    const cohortMonth = monthMatch[1]; 
+                                    if (allowedMonths.includes(cohortMonth)) {
+                                        includeCohort = true;
+                                        console.log(`Including cohort "${cohort}" (month ${cohortMonth}).`);
+                                    } else {
+                                        console.log(`Skipping cohort "${cohort}" (month ${cohortMonth}) as it's not current/previous month.`);
+                                    }
+                                } else {
+
+                                    console.log(`Skipping cohort "${cohort}" as it does not contain a valid 4-digit month pattern.`);
+                                }
+
+                                if (includeCohort) {
+                                    const option = document.createElement('option');
+                                    option.value = cohort;
+                                    option.textContent = cohort;
+                                    if (cohortSelect) cohortSelect.appendChild(option);
+                                }
+                            });
+                        }
+
+                        if (cohortSelect && cohortSelect.options.length <= 1) {
+                            cohortSelect.innerHTML = '<option value="">No relevant cohorts found</option>';
+                        }
+
+                        if (cohortSelect) cohortSelect.disabled = false;
+                        hideLoading();
+                    })
+                    .withFailureHandler(e => {
+                        onError(e, errorMessageDivStep2);
+                        hideLoading();
+                    })
+                    .getCohorts(selectedId);
+            } else {
+                if (cohortSelect) {
+                    cohortSelect.innerHTML = '<option value="">Select an internship first</option>';
+                    cohortSelect.disabled = true;
+                }
+            }
+        });
+    }
+
+    if (loadPeersButton) { 
+        loadPeersButton.addEventListener('click', () => {
+            clearAllMessages();
+            const internshipMasterSheetId = internshipSelect ? internshipSelect.value : '';
+            const cohort = cohortSelect ? cohortSelect.value : '';
+
+            if (!internshipMasterSheetId || !cohort) {
+                showMessage(errorMessageDivStep2, 'Please select an internship and cohort.', 'error');
+                return;
+            }
+            if (!currentInternData || !currentInternData.email) {
+                showMessage(errorMessageDivStep2, 'Intern data missing. Please go back to the start.', 'error');
+                return;
+            }
+
+            showLoading();
+            if (loadPeersButton) loadPeersButton.disabled = true;
+            if (internshipSelect) internshipSelect.disabled = true; 
+            if (cohortSelect) cohortSelect.disabled = true; 
+
+            google.script.run
+                .withSuccessHandler(result => {
+                    hideLoading();
+                    if (loadPeersButton) loadPeersButton.disabled = false;
+                    if (internshipSelect) internshipSelect.disabled = false; 
+                    if (cohortSelect) cohortSelect.disabled = false; 
+
+                    if (result.success) {
+                        clearAllMessages();
+                        currentInternData.groupNumber = result.internData.groupNumber;
+                        currentInternData.originalRowIndexInSheet = result.internData.originalRowIndexInSheet;
+                        currentInternData.masterSheetId = result.internData.masterSheetId;
+                        currentInternData.cohort = result.internData.cohort; 
+
+                        if (displayInternName) displayInternName.textContent = currentInternData.name; 
+                        if (displayTeamNumber) displayTeamNumber.textContent = currentInternData.groupNumber;
+                        if (peerEvaluationSubSection) peerEvaluationSubSection.classList.remove('hidden');
+
+                        renderPeerEvaluationForms(result.peers, result.existingEvaluationData); 
+                        showMessage(errorMessageDivStep2, result.message, 'success');
+                    } else {
+                        showMessage(errorMessageDivStep2, result.message, 'error');
+                        if (peerEvaluationSubSection) peerEvaluationSubSection.classList.add('hidden');
+                        if (submitButton) submitButton.classList.add('hidden');
+                    }
+                })
+                .withFailureHandler(e => {
+                    onError(e, errorMessageDivStep2);
+                    hideLoading();
+                    if (loadPeersButton) loadPeersButton.disabled = false;
+                    if (internshipSelect) internshipSelect.disabled = false;
+                    if (cohortSelect) cohortSelect.disabled = false;
+                })
+                .validateInternAndGetPeers({
+                    email: currentInternData.email,
+                    internshipMasterSheetId: internshipMasterSheetId,
+                    cohort: cohort,
+                    internshipName: currentInternshipName 
+                });
+        });
+    }
+
+    function renderPeerEvaluationForms(peers, existingData = {}) {
+        if (peersContainer) peersContainer.innerHTML = ''; 
+
+        if (peers.length === 0) {
+            if (peersContainer) peersContainer.innerHTML = '<p>No peers found in your team for evaluation.</p>';
+            if (submitButton) submitButton.classList.add('hidden');
+            return;
+        }
+
+        let allPeersHaveExistingData = true; 
+        const currentEvaluatedPeersData = []; 
+
+        peers.forEach(peer => {
+
+            const peerCard = createPeerCard(peer, existingData[peer.email.toLowerCase()]);
+            if (peersContainer) peersContainer.appendChild(peerCard);
+
+            const existingPeerScores = existingData[peer.email.toLowerCase()] || {};
+            currentEvaluatedPeersData.push({
+                name: peer.name,
+                email: peer.email,
+                scores: existingPeerScores 
+            });
+
+            scoreCategories.forEach(category => {
+                if (existingPeerScores[category.id] === undefined) {
+                    allPeersHaveExistingData = false;
+                }
+            });
+        });
+
+        evaluatedPeersData = currentEvaluatedPeersData;
+
+        if (submitButton) {
+            submitButton.classList.remove('hidden');
+            if (allPeersHaveExistingData && peers.length > 0) { 
+                submitButton.textContent = 'Update Evaluations';
+                isEditMode = true;
+                showMessage(evaluationMessageDiv, 'You have previously submitted evaluations for this group. You can modify and update them below.', 'info');
+            } else {
+                submitButton.textContent = 'Submit Evaluations';
+                isEditMode = false;
+                showMessage(evaluationMessageDiv, 'Please complete the peer evaluations below.', 'info');
+            }
+        }
+    }
+
+    function createPeerCard(peer, existingPeerScores = {}) {
+        const card = document.createElement('div');
+        card.classList.add('peer-card');
+
+        card.setAttribute('data-peer-email', peer.email.toLowerCase());
+        card.innerHTML = `<h3>${peer.name} (${peer.email})</h3>`;
+
+        const scoresDiv = document.createElement('div');
+        scoresDiv.className = 'evaluation-scores'; 
+
+        scoreCategories.forEach(category => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.classList.add('score-category');
+
+            categoryDiv.innerHTML = `<label>${category.label} (1-5):</label>`;
+            const scoreOptionsDiv = document.createElement('div');
+            scoreOptionsDiv.classList.add('score-options');
+
+            for (let i = 1; i <= 5; i++) { 
+                const radioId = `score-${peer.email}-${category.id}-${i}`;
+                const radioInput = document.createElement('input');
+                radioInput.type = 'radio';
+                radioInput.id = radioId;
+                radioInput.name = `score-${peer.email}-${category.id}`; 
+                radioInput.value = i;
+                radioInput.required = true;
+
+                if (existingPeerScores && existingPeerScores[category.id] !== undefined && parseInt(existingPeerScores[category.id]) === i) {
+                    radioInput.checked = true;
+                } else if (i === 1 && !existingPeerScores[category.id]) { 
+                    radioInput.checked = true;
+                }
+
+                const radioLabel = document.createElement('label');
+                radioLabel.htmlFor = radioId;
+                radioLabel.textContent = i;
+
+                scoreOptionsDiv.appendChild(radioInput);
+                scoreOptionsDiv.appendChild(radioLabel);
+            }
+            categoryDiv.appendChild(scoreOptionsDiv);
+            scoresDiv.appendChild(categoryDiv);
+        });
+        card.appendChild(scoresDiv); 
+        return card;
+    }
+
+    if (submitButton) { 
+        submitButton.addEventListener('click', () => {
+            clearAllMessages();
+            const allScoresValid = collectScores(); 
+
+            if (!allScoresValid) {
+                showMessage(submissionErrorMessageDiv, 'Please select a score (1-5) for all categories for every peer.', 'error');
+                return;
+            }
+
+            if (evaluatedPeersData.length === 0) {
+                showMessage(submissionErrorMessageDiv, 'No peers to evaluate.', 'error');
+                return;
+            }
+            if (!currentInternData || !currentInternData.email || !currentInternData.masterSheetId || !currentInternData.cohort) {
+                showMessage(submissionErrorMessageDiv, 'Session data missing. Please go back to the start.', 'error');
+                return;
+            }
+
+            showLoading();
+            if (submitButton) submitButton.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(handleSubmitResponse)
+                .withFailureHandler(e => {
+                    onError(e, submissionErrorMessageDiv);
+                    hideLoading();
+                    if (submitButton) submitButton.disabled = false;
+                })
+                .submitPeerEvaluations({
+                    evaluator: currentInternData, 
+                    internshipName: currentInternshipName,
+                    evaluatedPeers: evaluatedPeersData
+                });
+        });
+    }
+
+    function collectScores() {
+        let allScoresValid = true;
+
+        document.querySelectorAll('.peer-card').forEach(peerCard => {
+            const peerEmail = peerCard.getAttribute('data-peer-email');
+            const peerInData = evaluatedPeersData.find(p => p.email.toLowerCase() === peerEmail);
+
+            if (peerInData) {
+                scoreCategories.forEach(category => {
+                    const selectedRadio = peerCard.querySelector(`input[name="score-${peerEmail}-${category.id}"]:checked`);
+                    if (selectedRadio) {
+                        peerInData.scores[category.id] = parseInt(selectedRadio.value);
+                    } else {
+                        allScoresValid = false; 
+                    }
+                });
+            } else {
+                allScoresValid = false; 
+            }
+        });
+        return allScoresValid;
+    }
+
+    function handleSubmitResponse(result) {
+        if (result.success) {
+            showMessage(evaluationMessageDiv, result.message + '\n\nYou can close this page now.', 'success');
+
+            document.querySelectorAll('.peer-card input[type="radio"]').forEach(input => input.disabled = true);
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('hidden'); 
+            }
+            if (loadPeersButton) loadPeersButton.classList.add('hidden'); 
+            if (backButtonStep1) backButtonStep1.classList.add('hidden'); 
+
+        } else {
+            showMessage(submissionErrorMessageDiv, result.message, 'error');
+        }
+        hideLoading();
+        if (submitButton) submitButton.disabled = false;
+    }
+
+    function onError(error, targetErrorDiv) {
+        console.error("Apps Script Error:", error);
+
+        const actualErrorDiv = targetErrorDiv && typeof targetErrorDiv.classList !== 'undefined' ? targetErrorDiv : errorMessageDivStep1;
+        showMessage(actualErrorDiv, `An unexpected error occurred: ${error.message || 'Please try again or contact support.'}`, 'error');
+        hideLoading();
+    }
+
+    function resetForm() {
+        if (nameInput) nameInput.value = '';
+        if (emailInput) emailInput.value = '';
+        if (otpInput) otpInput.value = '';
+
+        if (internshipSelect) internshipSelect.value = '';
+        if (internshipSelect) internshipSelect.innerHTML = '<option value="">Select an internship</option>';
+        if (cohortSelect) {
+            cohortSelect.innerHTML = '<option value="">Select an internship first</option>';
+            cohortSelect.disabled = true;
+        }
+
+        currentInternData = null;
+        evaluatedPeersData = [];
+        currentInternshipName = '';
+        isEditMode = false;
+
+        if (peersContainer) peersContainer.innerHTML = '<p>No peers found for evaluation.</p>';
+        if (submitButton) submitButton.classList.add('hidden');
+
+        if (detailsSection) detailsSection.classList.remove('hidden');
+        if (otpSection) otpSection.classList.add('hidden');
+        if (selectionAndEvaluationSection) selectionAndEvaluationSection.classList.add('hidden');
+        if (peerEvaluationSubSection) peerEvaluationSubSection.classList.add('hidden');
+
+        clearAllMessages();
+        if (nameInput) nameInput.disabled = false;
+        if (emailInput) emailInput.disabled = false;
+        loadInternships(); 
+    }
+</script>
